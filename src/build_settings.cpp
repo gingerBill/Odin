@@ -23,6 +23,8 @@ enum TargetArchKind {
 
 	TargetArch_amd64,
 	TargetArch_386,
+	TargetArch_riscv64,
+	TargetArch_riscv32,
 	TargetArch_wasm32,
 
 	TargetArch_COUNT,
@@ -53,6 +55,8 @@ String target_arch_names[TargetArch_COUNT] = {
 	str_lit(""),
 	str_lit("amd64"),
 	str_lit("386"),
+	str_lit("riscv64"),
+	str_lit("riscv32"),
 	str_lit("wasm32"),
 };
 
@@ -64,6 +68,8 @@ String target_endian_names[TargetEndian_COUNT] = {
 
 TargetEndianKind target_endians[TargetArch_COUNT] = {
 	TargetEndian_Invalid,
+	TargetEndian_Little,
+	TargetEndian_Little,
 	TargetEndian_Little,
 	TargetEndian_Little,
 	TargetEndian_Little,
@@ -206,6 +212,21 @@ gb_global TargetMetrics target_linux_amd64 = {
 	str_lit("x86_64-pc-linux-gnu"),
 	str_lit("e-m:w-i64:64-f80:128-n8:16:32:64-S128"),
 };
+gb_global TargetMetrics target_linux_riscv32 = {
+	TargetOs_linux,
+	TargetArch_riscv32,
+	4,
+	8,
+	str_lit("riscv32-pc-linux-gnu"),
+};
+gb_global TargetMetrics target_linux_riscv64 = {
+	TargetOs_linux,
+	TargetArch_riscv64,
+	8,
+	16,
+	str_lit("riscv64-pc-linux-gnu"),
+	str_lit("e-m:e-p:64:64-i64:64-i128:128-n64-S128"),
+};
 
 gb_global TargetMetrics target_darwin_amd64 = {
 	TargetOs_darwin,
@@ -231,6 +252,21 @@ gb_global TargetMetrics target_freebsd_amd64 = {
 	16,
 	str_lit("x86_64-unknown-freebsd-elf"),
 	str_lit("e-m:w-i64:64-f80:128-n8:16:32:64-S128"),
+};
+gb_global TargetMetrics target_freebsd_riscv32 = {
+	TargetOs_freebsd,
+	TargetArch_riscv32,
+	4,
+	8,
+	str_lit("riscv32-unknown-freebsd-elf"),
+};
+gb_global TargetMetrics target_freebsd_riscv64 = {
+	TargetOs_freebsd,
+	TargetArch_riscv64,
+	8,
+	16,
+	str_lit("riscv64-unknown-freebsd-elf"),
+	str_lit("e-m:w-i64:64-f80:128-n8:16:32:64-S128"), // TODO
 };
 
 gb_global TargetMetrics target_essence_amd64 = {
@@ -262,10 +298,14 @@ gb_global NamedTargetMetrics named_targets[] = {
 	{ str_lit("js_wasm32"),     &target_js_wasm32 },
 	{ str_lit("linux_386"),     &target_linux_386 },
 	{ str_lit("linux_amd64"),   &target_linux_amd64 },
+	{ str_lit("linux_riscv32"),   &target_linux_riscv32 },
+	{ str_lit("linux_riscv64"),   &target_linux_riscv64 },
 	{ str_lit("windows_386"),   &target_windows_386 },
 	{ str_lit("windows_amd64"), &target_windows_amd64 },
 	{ str_lit("freebsd_386"),   &target_freebsd_386 },
 	{ str_lit("freebsd_amd64"), &target_freebsd_amd64 },
+	{ str_lit("freebsd_riscv32"), &target_freebsd_riscv32 },
+	{ str_lit("freebsd_riscv64"), &target_freebsd_riscv64 },
 };
 
 NamedTargetMetrics *selected_target_metrics;
@@ -663,6 +703,14 @@ void init_build_context(TargetMetrics *cross_target) {
 		#else
 			metrics = &target_linux_amd64;
 		#endif
+
+		#if defined(GB_CPU_RISCV)
+			#if defined(GB_SYSTEM_FREEBSD)
+				metrics = &target_freebsd_riscv64;
+			#else
+				metrics = &target_linux_riscv64;
+			#endif
+		#endif
 	#else
 		#if defined(GB_SYSTEM_WINDOWS)
 			metrics = &target_windows_386;
@@ -672,6 +720,14 @@ void init_build_context(TargetMetrics *cross_target) {
 			metrics = &target_freebsd_386;
 		#else
 			metrics = &target_linux_386;
+		#endif
+
+		#if defined(GB_CPU_RISCV)
+			#if defined(GB_SYSTEM_FREEBSD)
+				metrics = &target_freebsd_riscv32;
+			#else
+				metrics = &target_linux_riscv32;
+			#endif
 		#endif
 	#endif
 
@@ -738,6 +794,42 @@ void init_build_context(TargetMetrics *cross_target) {
 			break;
 		case TargetOs_freebsd:
 			bc->link_flags = str_lit("-arch x86");
+			break;
+		}
+	} else if (bc->metrics.arch == TargetArch_riscv32) {
+		llc_flags = gb_string_appendc(llc_flags, "-march=riscv32 ");
+
+		switch (bc->metrics.os) {
+		case TargetOs_windows:
+			bc->link_flags = str_lit("/machine:riscv32 ");
+			break;
+		case TargetOs_darwin:
+			gb_printf_err("Unsupported architecture\n");
+			gb_exit(1);
+			break;
+		case TargetOs_linux:
+			bc->link_flags = str_lit("-arch riscv32 ");
+			break;
+		case TargetOs_freebsd:
+			bc->link_flags = str_lit("-arch riscv32");
+			break;
+		}
+	} else if (bc->metrics.arch == TargetArch_riscv64) {
+		llc_flags = gb_string_appendc(llc_flags, "-march=riscv64 --float-abi=hard ");
+
+		switch (bc->metrics.os) {
+		case TargetOs_windows:
+			bc->link_flags = str_lit("/machine:riscv64 ");
+			break;
+		case TargetOs_darwin:
+			gb_printf_err("Unsupported architecture\n");
+			gb_exit(1);
+			break;
+		case TargetOs_linux:
+			bc->link_flags = str_lit("-arch rv64imafdc -mfloat-abi=hard ");
+			break;
+		case TargetOs_freebsd:
+			bc->link_flags = str_lit("-arch riscv64 ");
 			break;
 		}
 	} else if (bc->metrics.arch == TargetArch_wasm32) {

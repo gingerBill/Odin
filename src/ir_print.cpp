@@ -1551,7 +1551,11 @@ void ir_print_instr(irFileBuffer *f, irModule *m, irValue *value) {
 				break;
 
 			case BuiltinProc_cpu_relax:
+#if defined(GB_CPU_RISCV)
+				ir_write_str_lit(f, "call void asm sideeffect \"nop\", \"\"()");
+#else
 				ir_write_str_lit(f, "call void asm sideeffect \"pause\", \"\"()");
+#endif
 				break;
 			default: GB_PANIC("Unknown inline code %d", instr->InlineCode.id); break;
 			}

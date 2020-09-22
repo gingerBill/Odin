@@ -157,7 +157,7 @@ extern "C" {
 	#endif
 #endif
 
-#if defined(_WIN64) || defined(__x86_64__) || defined(_M_X64) || defined(__64BIT__) || defined(__powerpc64__) || defined(__ppc64__)
+#if defined(_WIN64) || defined(__x86_64__) || defined(_M_X64) || defined(__64BIT__) || defined(__powerpc64__) || defined(__ppc64__) || (__riscv_xlen == 64)
 	#ifndef GB_ARCH_64_BIT
 	#define GB_ARCH_64_BIT 1
 	#endif
@@ -233,6 +233,14 @@ extern "C" {
 #elif defined(__arm__)
 	#ifndef GB_CPU_ARM
 	#define GB_CPU_ARM 1
+	#endif
+	#ifndef GB_CACHE_LINE_SIZE
+	#define GB_CACHE_LINE_SIZE 64
+	#endif
+
+#elif defined(__riscv) || defined(__riscv__)
+	#ifndef GB_CPU_RISCV
+	#define GB_CPU_RISCV
 	#endif
 	#ifndef GB_CACHE_LINE_SIZE
 	#define GB_CACHE_LINE_SIZE 64
@@ -3702,6 +3710,12 @@ gb_inline void *gb_memcopy(void *dest, void const *source, isize n) {
 
 	void *dest_copy = dest;
 	__asm__ __volatile__("rep movsb" : "+D"(dest_copy), "+S"(source), "+c"(n) : : "memory");
+#elif defined(GB_CPU_RISCV)
+	u8 *s = cast(u8 *) source;
+	u8 *d = cast(u8 *) dest;
+	for (size_t i = 0; i < n; i++) {
+		*(d+ i) = *(s+ i);
+	}
 #else
 	u8 *d = cast(u8 *)dest;
 	u8 const *s = cast(u8 const *)source;
@@ -4438,6 +4452,68 @@ gb_inline i64 gb_atomic64_fetch_or(gbAtomic64 volatile *a, i64 operand) {
 #endif
 }
 
+#elif defined(GB_CPU_RISCV)
+
+// TODO(Christian Seibold): Use Assembly instead?
+// // Also, what about MSVC?
+
+gb_inline i32  gb_atomic32_load (gbAtomic32 const volatile *a)      { return __atomic_load_n(&a->value, __ATOMIC_SEQ_CST);  }
+gb_inline void gb_atomic32_store(gbAtomic32 volatile *a, i32 value) { __atomic_store_n(&a->value, value, __ATOMIC_SEQ_CST); }
+
+gb_inline i32 gb_atomic32_compare_exchange(gbAtomic32 volatile *a, i32 expected, i32 desired) {
+	i32 expected_copy = expected;
+	auto result = __atomic_compare_exchange_n(&a->value, &expected_copy, desired, true, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+	if (result) return expected;
+		else return expected_copy;
+}
+
+gb_inline i32 gb_atomic32_exchanged(gbAtomic32 volatile *a, i32 desired) {
+	return __atomic_exchange_n(&a->value, desired, __ATOMIC_SEQ_CST);
+}
+
+gb_inline i32 gb_atomic32_fetch_add(gbAtomic32 volatile *a, i32 operand) {
+	return __atomic_fetch_add(&a->value, operand, __ATOMIC_SEQ_CST);
+}
+
+gb_inline i32 gb_atomic32_fetch_and(gbAtomic32 volatile *a, i32 operand) {
+	return __atomic_fetch_and(&a->value, operand, __ATOMIC_SEQ_CST);
+}
+
+gb_inline i32 gb_atomic32_fetch_or(gbAtomic32 volatile *a, i32 operand) {
+	return __atomic_fetch_or(&a->value, operand, __ATOMIC_SEQ_CST);
+}
+
+gb_inline i64 gb_atomic64_load(gbAtomic64 const volatile *a) {
+	return __atomic_load_n(&a->value, __ATOMIC_SEQ_CST);
+}
+
+gb_inline void gb_atomic64_store(gbAtomic64 volatile *a, i64 value) {
+	__atomic_store_n(&a->value, value, __ATOMIC_SEQ_CST);
+}
+
+gb_inline i64 gb_atomic64_compare_exchange(gbAtomic64 volatile *a, i64 expected, i64 desired) {
+	i64 expected_copy = expected;
+	auto result = __atomic_compare_exchange_n(&a->value, &expected_copy, desired, true, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+	if (result) return expected;
+		else return expected_copy;
+}
+
+gb_inline i64 gb_atomic64_exchanged(gbAtomic64 volatile *a, i64 desired) {
+	return __atomic_exchange_n(&a->value, desired, __ATOMIC_SEQ_CST);
+}
+
+gb_inline i64 gb_atomic64_fetch_add(gbAtomic64 volatile *a, i64 operand) {
+	return __atomic_fetch_add(&a->value, operand, __ATOMIC_SEQ_CST);
+}
+
+gb_inline i64 gb_atomic64_fetch_and(gbAtomic64 volatile *a, i64 operand) {
+	return __atomic_fetch_and(&a->value, operand, __ATOMIC_SEQ_CST);
+}
+
+gb_inline i64 gb_atomic64_fetch_or(gbAtomic64 volatile *a, i64 operand) {
+	return __atomic_fetch_or(&a->value, operand, __ATOMIC_SEQ_CST);
+}
+
 #else
 #error TODO(bill): Implement Atomics for this CPU
 #endif
@@ -4566,6 +4642,12 @@ gb_inline void gb_yield_thread(void) {
 	__asm__ volatile ("" : : : "memory");
 #elif defined(GB_CPU_X86)
 	_mm_pause();
+#elif defined(GB_CPU_RISCV)
+// PAUSE HINT is not part of RISC-V ISA yet, but is under discussion now. For details see:
+// https://github.com/riscv/riscv-isa-manual/pull/398
+// https://github.com/riscv/riscv-isa-manual/issues/43
+// asm volatile("pause");
+	asm volatile("nop");
 #else
 #error Unknown architecture
 #endif
@@ -4578,6 +4660,9 @@ gb_inline void gb_mfence(void) {
 	__sync_synchronize();
 #elif defined(GB_CPU_X86)
 	_mm_mfence();
+#elif defined(GB_CPU_RISCV)
+	// TODO(Christian Seibold)
+	__atomic_thread_fence(__ATOMIC_SEQ_CST);
 #else
 #error Unknown architecture
 #endif
@@ -4590,6 +4675,9 @@ gb_inline void gb_sfence(void) {
 	__asm__ volatile ("" : : : "memory");
 #elif defined(GB_CPU_X86)
 	_mm_sfence();
+#elif defined(GB_CPU_RISCV)
+	// TODO(Christian Seibold)
+	__atomic_thread_fence(__ATOMIC_SEQ_CST);
 #else
 #error Unknown architecture
 #endif
@@ -4602,6 +4690,9 @@ gb_inline void gb_lfence(void) {
 	__asm__ volatile ("" : : : "memory");
 #elif defined(GB_CPU_X86)
 	_mm_lfence();
+#elif defined(GB_CPU_RISCV)
+	// TODO(Christian Seibold)
+	__atomic_thread_fence(__ATOMIC_SEQ_CST);
 #else
 #error Unknown architecture
 #endif
@@ -4787,6 +4878,12 @@ gb_inline u32 gb_thread_current_id(void) {
 	__asm__("mov %%gs:0x08,%0" : "=r"(thread_id));
 #elif defined(GB_ARCH_64_BIT) && defined(GB_CPU_X86)
 	__asm__("mov %%fs:0x10,%0" : "=r"(thread_id));
+#elif defined(GB_SYSTEM_LINUX) && defined(GB_CPU_RISCV)
+	// TODO(Christian Seibold): Use assembly?
+	thread_id = gettid();
+#elif defined(GB_SYSTEM_FREEBSD) && defined(GB_CPU_RISCV)
+	// TODO(Christian Seibold): Use assembly?
+	thread_id = pthread_getthreadid_np();
 #else
 	#error Unsupported architecture for gb_thread_current_id()
 #endif
@@ -5202,7 +5299,7 @@ void gb_affinity_init(gbAffinity *a) {
 		for (;;) {
 			// The 'temporary char'. Everything goes into this char,
 			// so that we can check against EOF at the end of this loop.
-			char c;
+			int c;
 
 #define AF__CHECK(letter) ((c = getc(cpu_info)) == letter)
 			if (AF__CHECK('c') && AF__CHECK('p') && AF__CHECK('u') && AF__CHECK(' ') &&
@@ -8808,6 +8905,30 @@ gb_inline gbDllProc gb_dll_proc_address(gbDllHandle dll, char const *proc_name) 
 
 		return result;
 	}
+#elif defined(__riscv) || defined(__riscv__)
+	// NOTE: Taken from https://reviews.llvm.org/D78084
+	#if __riscv_xlen == 32
+		gb_inline u64 gb_rdtsc(void) {
+			u32 cycles_lo, cycles_hi0, cycles_hi1;
+			// This asm also includes the PowerPC overflow handling strategy.
+			asm volatile(
+				"rdcycleh %0\n"
+				"rdcycle %1\n"
+				"rdcycleh %2\n"
+				"sub %0, %0, %2\n"
+				"seqz %0, %0\n"
+				"sub %0, zero, %0\n"
+				"and %1, %1, %0\n"
+				: "=r"(cycles_hi0), "=r"(cycles_lo), "=r"(cycles_hi1));
+			return (cast(u64)cycles_hi1 << 32) | (cast(u64)cycles_lo);
+		}
+	#else
+		gb_inline u64 gb_rdtsc(void) {
+			u64 cycles;
+			asm volatile("rdcycle %0" : "=r"(cycles));
+			return cycles;
+		}
+	#endif
 #endif
 
 #if defined(GB_SYSTEM_WINDOWS)
