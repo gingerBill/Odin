@@ -33,5 +33,9 @@ elif [[ "$(uname)" == "FreeBSD" ]]; then
 	compiler="clang"
 fi
 
+if [[ "$2" == "install" ]]; then
+	sudo ln -sf $PWD/odin /usr/bin/odin
+fi
+
 ${compiler} src/main.cpp ${warnings_to_disable} ${libraries} ${other_args} -o odin
 	# && ./odin run examples/demo/demo.odin -llvm-api

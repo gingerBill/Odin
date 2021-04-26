@@ -59,7 +59,7 @@ _make_time_from_unix_file_time :: proc(uft: Unix_File_Time) -> time.Time {
 
 @private
 _fill_file_info_from_stat :: proc(fi: ^File_Info, s: OS_Stat) {
-	fi.size = s.size;
+	fi.size = cast(u16)s.size;
 	fi.mode = cast(File_Mode)s.mode;
 	fi.is_dir = S_ISDIR(u32(s.mode));
 
