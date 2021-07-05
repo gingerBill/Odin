@@ -1,5 +1,5 @@
 // #define NO_ARRAY_BOUNDS_CHECK
-
+#include <ctype.h>
 #include "common.cpp"
 #include "timings.cpp"
 #include "tokenizer.cpp"
@@ -670,14 +670,8 @@ ExactValue build_param_to_exact_value(String name, String param) {
 	           str_eq_ignore_case(param, str_lit("false"))) {
 		value = exact_value_bool(false);
 	} else if (param.len > 0) {
-		if (param[0] == '"') {
+		if (isalpha(param[0]) && !isdigit(param[0])) {
 			value = exact_value_string(param);
-			if (value.kind == ExactValue_String) {
-				String s = value.value_string;
-				if (s.len > 1 && s[0] == '"' && s[s.len-1] == '"') {
-					value.value_string = substring(s, 1, s.len-1);
-				}
-			}
 		} else if (param[0] == '-' || param[0] == '+' || gb_is_between(param[0], '0', '9')) {
 			if (string_contains_char(param, '.')) {
 				value = exact_value_float_from_string(param);
