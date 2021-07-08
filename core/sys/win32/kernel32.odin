@@ -197,6 +197,7 @@ Memory_Basic_Information :: struct {
 	base_address:       rawptr,
 	allocation_base:    rawptr,
 	allocation_protect: u32,
+	partition_size:     u32,
 	region_size:        uint,
 	state:              u32,
 	protect:            u32,

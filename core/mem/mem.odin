@@ -166,7 +166,7 @@ slice_data_cast :: proc($T: typeid/[]$A, slice: $S/[]$B) -> T {
 
 slice_to_components :: proc(slice: $E/[]$T) -> (data: ^T, len: int) {
 	s := transmute(Raw_Slice)slice;
-	return s.data, s.len;
+	return (^T)(s.data), s.len;
 }
 
 buffer_from_slice :: proc(backing: $T/[]$E) -> [dynamic]E {
@@ -238,6 +238,11 @@ align_backward_int :: proc(ptr, align: int) -> int {
 }
 align_backward_uint :: proc(ptr, align: uint) -> uint {
 	return uint(align_backward_uintptr(uintptr(ptr), uintptr(align)));
+}
+
+is_aligned_to :: #force_inline proc(ptr: rawptr, align: int) -> bool {
+	assert(is_power_of_two(uintptr(align)));
+	return uintptr(ptr) & uintptr(align-1) == 0;
 }
 
 context_from_allocator :: proc(a: Allocator) -> type_of(context) {
