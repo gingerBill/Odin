@@ -197,6 +197,10 @@ extern "C" {
 		#ifndef GB_SYSTEM_FREEBSD
 		#define GB_SYSTEM_FREEBSD 1
 		#endif
+	#elif defined(__NetBSD__)
+		#ifndef GB_SYSTEM_NETBSD
+		#define GB_SYSTEM_NETBSD
+		#endif
 	#else
 		#error This UNIX operating system is not supported
 	#endif
@@ -317,7 +321,7 @@ extern "C" {
 	#endif
 	#include <stdlib.h> // NOTE(bill): malloc on linux
 	#include <sys/mman.h>
-	#if !defined(GB_SYSTEM_OSX) && !defined(__FreeBSD__)
+	#if !defined(GB_SYSTEM_OSX) && !defined(__FreeBSD__) && !defined(__NetBSD__)
 		#include <sys/sendfile.h>
 	#endif
 	#include <sys/stat.h>
@@ -1058,6 +1062,13 @@ typedef struct gbAffinity {
 	isize threads_per_core;
 } gbAffinity;
 #elif defined(GB_SYSTEM_FREEBSD)
+typedef struct gbAffinity {
+	b32 is_accurate;
+	isize core_count;
+	isize thread_count;
+	isize threads_per_core;
+} gbAffinity;
+#elif defined(GB_SYSTEM_NETBSD)
 typedef struct gbAffinity {
 	b32 is_accurate;
 	isize core_count;
