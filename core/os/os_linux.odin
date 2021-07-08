@@ -13,6 +13,9 @@ File_Time :: distinct u64;
 Errno     :: distinct i32;
 Syscall   :: distinct i32;
 
+uid_t :: u32;
+gid_t :: u32;
+
 INVALID_HANDLE :: ~Handle(0);
 
 ERROR_NONE:     Errno : 0;
@@ -265,6 +268,29 @@ X_OK :: 1; // Test for execute permission
 W_OK :: 2; // Test for write permission
 R_OK :: 4; // Test for read permission
 
+passwd :: struct {
+	pw_name: cstring,
+	pw_passwd: cstring,
+	pw_uid: uid_t,
+	pw_gid: gid_t,
+	pw_gecos: cstring,
+	pw_dir: cstring,
+	pw_shell: cstring,
+}
+
+DIR :: opaque [0]byte;
+ino_t :: distinct c.ulong;
+off_t :: distinct c.long;
+
+dirent :: struct {
+	d_ino: ino_t, // Inode number of the file
+	d_off: off_t,
+	d_reclen: c.ushort, // Size in bytes of the returned record
+	d_type: c.uchar, // File type
+
+	d_name: [256]c.char, // Name of file, null-terminated, can exceede 256 chars (in which case d_reclen exceedes the size of this struct)
+}
+
 SYS_GETTID: Syscall : 186;
 
 foreign libc {
@@ -277,6 +303,7 @@ foreign libc {
 	@(link_name="write")            _unix_write         :: proc(fd: Handle, buf: rawptr, size: c.size_t) -> c.ssize_t ---;
 	@(link_name="lseek64")          _unix_seek          :: proc(fd: Handle, offset: i64, whence: c.int) -> i64 ---;
 	@(link_name="gettid")           _unix_gettid        :: proc() -> u64 ---;
+	@(link_name="getuid")           getuid              :: proc() -> uid_t ---;
 	@(link_name="getpagesize")      _unix_getpagesize   :: proc() -> c.int ---;
 	@(link_name="stat64")           _unix_stat          :: proc(path: cstring, stat: ^OS_Stat) -> c.int ---;
 	@(link_name="lstat")            _unix_lstat         :: proc(path: cstring, stat: ^OS_Stat) -> c.int ---;
@@ -288,11 +315,21 @@ foreign libc {
 	@(link_name="readlink")         _unix_readlink      :: proc(path: cstring, buf: ^byte, bufsiz: c.size_t) -> c.ssize_t ---;
 	@(link_name="access")           _unix_access        :: proc(path: cstring, mask: c.int) -> c.int ---;
 
+	@(link_name="getpwnam")         _unix_getpwnam      :: proc(name: cstring) -> ^passwd ---;
+	@(link_name="getpwuid")         getpwuid            :: proc(uid: uid_t) -> ^passwd ---;
+	@(link_name="readlink")         _unix_readlink      :: proc(pathname: cstring, buf: cstring, bufsiz: c.size_t) -> c.ssize_t ---;
+
+	@(link_name="opendir")          _unix_opendir       :: proc(name: cstring) -> ^DIR ---; // TODO: Returns ^DIR (which is defined as __dirstream in dirent.h)
+	@(link_name="readdir")          _unix_readdir       :: proc(dirp: ^DIR) -> ^dirent ---;
+	@(link_name="closedir")         _unix_closedir      :: proc(dirp: ^DIR) -> c.int ---;
+
 	@(link_name="malloc")           _unix_malloc        :: proc(size: c.size_t) -> rawptr ---;
 	@(link_name="calloc")           _unix_calloc        :: proc(num, size: c.size_t) -> rawptr ---;
 	@(link_name="free")             _unix_free          :: proc(ptr: rawptr) ---;
 	@(link_name="realloc")          _unix_realloc       :: proc(ptr: rawptr, size: c.size_t) -> rawptr ---;
 	@(link_name="getenv")           _unix_getenv        :: proc(cstring) -> cstring ---;
+	@(link_name="setenv")           _unix_setenv        :: proc(name: cstring, value: cstring, overwrite: c.int) -> c.int ---;
+	@(link_name="unsetenv")         _unix_unsetenv      :: proc(name: cstring) -> c.int ---;
 	@(link_name="getcwd")           _unix_getcwd        :: proc(buf: cstring, len: c.size_t) -> cstring ---;
 	@(link_name="chdir")            _unix_chdir         :: proc(buf: cstring) -> c.int ---;
 	@(link_name="realpath")         _unix_realpath      :: proc(path: cstring, resolved_path: rawptr) -> rawptr ---;
@@ -539,6 +576,56 @@ access :: proc(path: string, mask: int) -> (bool, Errno) {
 	return true, ERROR_NONE;
 }
 
+getpwnam :: proc(name: string) -> ^passwd {
+	cstr := strings.clone_to_cstring(name);
+	defer delete(cstr);
+	return _unix_getpwnam(cstr);
+}
+
+readlink :: proc(pathname: string, buf: []u8) -> (int, Errno) {
+	cstr_pathname := strings.clone_to_cstring(pathname);
+	defer delete(cstr_pathname);
+	bytes_written := _unix_readlink(cstr_pathname, cstring(#no_bounds_check &buf[0]), c.size_t(len(buf)));
+	if bytes_written == -1 {
+		return -1, Errno(get_last_error());
+	}
+	return int(bytes_written), ERROR_NONE;
+}
+
+opendir :: proc(name: string) -> (^DIR, Errno) {
+	cstr := strings.clone_to_cstring(name);
+	defer delete(cstr);
+	result := _unix_opendir(cstr);
+	if result == nil {
+		return nil, Errno(get_last_error());
+	}
+	return result, ERROR_NONE;
+}
+
+readdir :: proc(dirp: ^DIR) -> (^dirent, Errno) {
+	previous := Errno(get_last_error());
+
+	result := _unix_readdir(dirp);
+	err := Errno(get_last_error());
+
+	if result == nil && previous != err { // If nil and errno changed, err occured
+		return nil, err;
+	} else if result == nil { // If errno not changed, end of directory stream
+		return nil, ERROR_NONE;
+	}
+
+	return result, ERROR_NONE;
+}
+
+closedir :: proc(dirp: ^DIR) -> Errno {
+	result := _unix_closedir(dirp);
+	if result == 0 {
+		return ERROR_NONE;
+	} else {
+		return Errno(get_last_error());
+	}
+}
+
 heap_alloc :: proc(size: int) -> rawptr {
 	assert(size >= 0);
 	return _unix_calloc(1, c.size_t(size));
@@ -560,6 +647,30 @@ getenv :: proc(name: string) -> (string, bool) {
 		return "", false;
 	}
 	return string(cstr), true;
+}
+
+setenv :: proc(name: string, value: string, overwrite: bool) -> Errno {
+	name_str := strings.clone_to_cstring(name);
+	defer delete(name_str);
+	value_str := strings.clone_to_cstring(value);
+	defer delete(value_str);
+	result := _unix_setenv(name_str, value_str, overwrite ? 1 : 0);
+	if result == -1 {
+		return Errno(get_last_error());
+	}
+
+	return ERROR_NONE;
+}
+
+unsetenv :: proc(name: string) -> Errno {
+	name_str := strings.clone_to_cstring(name);
+	defer delete(name_str);
+	result := _unix_unsetenv(name_str);
+	if result == -1 {
+		return Errno(get_last_error());
+	}
+
+	return ERROR_NONE;
 }
 
 get_current_directory :: proc() -> string {
