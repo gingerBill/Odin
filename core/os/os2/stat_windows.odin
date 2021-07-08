@@ -43,6 +43,16 @@ _stat_errno :: proc(errno: win32.DWORD) -> Path_Error {
 	return Path_Error{err = Platform_Error{i32(errno)}};
 }
 
+/*
+	https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew
+
+	If your app redirects stdout to a file, GetFinalPathNameByHandle will return the file it's redirected to.
+	This _might_ also work to figure out if a SUBST'd file path == another file path?
+
+	Similar to below, but this takes a handle and allows for different kinds of full path output.
+
+*/
+
 
 full_path_from_name :: proc(name: string, allocator := context.allocator) -> (path: string, err: Maybe(Path_Error)) {
 	name := name;

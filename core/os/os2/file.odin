@@ -27,7 +27,20 @@ O_CREATE :: int( 8);
 O_EXCL   :: int(16);
 O_SYNC   :: int(32);
 O_TRUNC  :: int(64);
+/*
+	Open as a sparse file on supported filesystems.
+	The implicit 'holes' won't take up diskspace.
+	Does nothing if the OS or filesystem don't support it.
 
+	NOTE: Sparse files may require additional calls after `open` to query where the holes are,
+	tell the OS to keep treating it as a sparse file, etc.
+*/
+O_SPARSE :: int(128); 
+
+File_Range :: struct {
+	start: int, // Start of hole to punch in sparse file, or beginning of allocated range
+	end:   int, // End of hole to punch in sparse file, or end of allocated range
+}
 
 
 stdin:  Handle = 0; // OS-Specific
@@ -156,3 +169,31 @@ is_dir :: proc(path: string) -> bool {
 	return _is_dir(path);
 }
 
+is_sparse_supported :: proc(path: string) -> bool {
+	return _is_sparse_supported(path);
+}
+
+sparse_set_mode :: proc(fd: Handle) -> Error {
+	return _sparse_set_mode(fd);
+}
+
+sparse_zero_range :: proc(fd: Handle, range: File_Range) -> Error {
+	/*
+		Fill the range with zeroes.
+
+		Where they hit an already allocated pages, they'll be written.
+		The parts of the range that hit unallocated pages won't be written.
+		This may also be used to make sparse (and deallocate) file pages you know to contain zeroes,
+		or are okay with containing them implicitly.
+	*/
+	return _sparse_zero_range(fd, range);
+}
+
+sparse_query_allocated_ranges :: proc(fd: Handle, allocator := context.allocator) -> (allocated: []File_Range, err: Error) {
+	/*
+		Returns an array of file ranges that have backing storage allocated for them.
+		These may still contain zeroes. Offsets not contained within these ranges are sparse.
+		NOTE: the slice of File_Ranges will be allocated using the supplied allocator
+	*/
+	return _sparse_query_allocated_ranges(fd, allocator);
+}

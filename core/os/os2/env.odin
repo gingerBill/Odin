@@ -35,9 +35,13 @@ clear_env :: proc() {
 
 
 // environ returns a copy of strings representing the environment, in the form "key=value"
-// NOTE: the slice of strings and the strings with be allocated using the supplied allocator
+// NOTE: the slice of strings and the strings will be allocated using the supplied allocator
 environ :: proc(allocator := context.allocator) -> []string {
 	return _environ(allocator);
 }
 
-
+read_environ_from_file :: proc(name: string, allocator := context.allocator) -> Error {
+	// Read key-value file and set/overwrite any keys found in the file.
+	// NOTE: The file buffer will be allocated using the supplied allocator
+	return .None;
+}

@@ -3,6 +3,7 @@ package os2
 
 import "core:io"
 import "core:time"
+import win32 "core:sys/windows"
 
 _create :: proc(name: string) -> (Handle, Error) {
 	return 0, nil;
@@ -126,11 +127,48 @@ _is_dir :: proc(path: string) -> bool {
 	return false;
 }
 
-
 _path_error_delete :: proc(perr: Maybe(Path_Error)) {
 
 }
 
 _link_error_delete :: proc(lerr: Maybe(Link_Error)) {
 
+}
+
+/*
+	Sparse file support:
+	https://docs.microsoft.com/en-us/windows/win32/fileio/sparse-file-operations
+*/
+
+_is_sparse_supported :: proc(path: string) -> bool {
+	return false;
+}
+
+_sparse_set_mode :: proc(Handle) -> Error {
+	return .None;
+}
+
+_sparse_zero_range :: proc(fd: Handle, range: File_Range) -> Error {
+	/*
+		Fill the range with zeroes.
+
+		Where they hit an already allocated pages, they'll be written.
+		The parts of the range that hit unallocated pages won't be written.
+		This may also be used to make sparse (and deallocate) file pages you know to contain zeroes,
+		or are okay with containing them implicitly.
+
+		https://docs.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data
+	*/
+	return .None;
+}
+
+_sparse_query_allocated_ranges :: proc(fd: Handle, allocator := context.allocator) -> (allocated: []File_Range, err: Error) {
+	/*
+		Returns an array of file ranges that have backing storage allocated for them.
+		These may still contain zeroes. Offsets not contained within these ranges are sparse.
+		NOTE: the slice of File_Ranges will be allocated using the supplied allocator
+
+		https://docs.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges
+	*/
+	return nil, .None;
 }
