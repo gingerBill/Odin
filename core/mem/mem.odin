@@ -208,13 +208,7 @@ align_forward :: proc(ptr: rawptr, align: uintptr) -> rawptr {
 
 align_forward_uintptr :: proc(ptr, align: uintptr) -> uintptr {
 	assert(is_power_of_two(align));
-
-	p := ptr;
-	modulo := p & (align-1);
-	if modulo != 0 {
-		p += align - modulo;
-	}
-	return p;
+	return (ptr+align-1)&(~align-1);
 }
 
 align_forward_int :: proc(ptr, align: int) -> int {
@@ -230,7 +224,7 @@ align_backward :: proc(ptr: rawptr, align: uintptr) -> rawptr {
 
 align_backward_uintptr :: proc(ptr, align: uintptr) -> uintptr {
 	assert(is_power_of_two(align));
-	return align_forward_uintptr(ptr - align + 1, align);
+	return ptr&(~align+1);
 }
 
 align_backward_int :: proc(ptr, align: int) -> int {
