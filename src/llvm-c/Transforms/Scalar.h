@@ -19,8 +19,8 @@
 #ifndef LLVM_C_TRANSFORMS_SCALAR_H
 #define LLVM_C_TRANSFORMS_SCALAR_H
 
-#include "../ExternC.h"
-#include "../Types.h"
+#include "llvm-c/ExternC.h"
+#include "llvm-c/Types.h"
 
 LLVM_C_EXTERN_C_BEGIN
 
@@ -66,6 +66,9 @@ void LLVMAddIndVarSimplifyPass(LLVMPassManagerRef PM);
 
 /** See llvm::createInstructionCombiningPass function. */
 void LLVMAddInstructionCombiningPass(LLVMPassManagerRef PM);
+
+/** See llvm::createInstSimplifyLegacyPass function. */
+void LLVMAddInstructionSimplifyPass(LLVMPassManagerRef PM);
 
 /** See llvm::createJumpThreadingPass function. */
 void LLVMAddJumpThreadingPass(LLVMPassManagerRef PM);
@@ -124,9 +127,6 @@ void LLVMAddSimplifyLibCallsPass(LLVMPassManagerRef PM);
 
 /** See llvm::createTailCallEliminationPass function. */
 void LLVMAddTailCallEliminationPass(LLVMPassManagerRef PM);
-
-/** See llvm::createConstantPropagationPass function. */
-void LLVMAddConstantPropagationPass(LLVMPassManagerRef PM);
 
 /** See llvm::demotePromoteMemoryToRegisterPass function. */
 void LLVMAddDemoteMemoryToRegisterPass(LLVMPassManagerRef PM);

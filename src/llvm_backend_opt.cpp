@@ -24,10 +24,10 @@ void lb_add_must_preserve_predicate_pass(lbModule *m, LLVMPassManagerRef fpm, i3
 void lb_basic_populate_function_pass_manager(LLVMPassManagerRef fpm) {
 	LLVMAddPromoteMemoryToRegisterPass(fpm);
 	LLVMAddMergedLoadStoreMotionPass(fpm);
-	LLVMAddConstantPropagationPass(fpm);
+	LLVMAddCorrelatedValuePropagationPass(fpm);
 	LLVMAddEarlyCSEPass(fpm);
 
-	LLVMAddConstantPropagationPass(fpm);
+	LLVMAddCorrelatedValuePropagationPass(fpm);
 	LLVMAddMergedLoadStoreMotionPass(fpm);
 	LLVMAddPromoteMemoryToRegisterPass(fpm);
 	LLVMAddCFGSimplificationPass(fpm);
@@ -58,10 +58,10 @@ void lb_populate_function_pass_manager(lbModule *m, LLVMPassManagerRef fpm, bool
 	LLVMAddMemCpyOptPass(fpm);
 	LLVMAddPromoteMemoryToRegisterPass(fpm);
 	LLVMAddMergedLoadStoreMotionPass(fpm);
-	LLVMAddConstantPropagationPass(fpm);
+	LLVMAddCorrelatedValuePropagationPass(fpm);
 	LLVMAddEarlyCSEPass(fpm);
 
-	LLVMAddConstantPropagationPass(fpm);
+	LLVMAddCorrelatedValuePropagationPass(fpm);
 	LLVMAddMergedLoadStoreMotionPass(fpm);
 	LLVMAddPromoteMemoryToRegisterPass(fpm);
 	LLVMAddCFGSimplificationPass(fpm);
@@ -99,10 +99,10 @@ void lb_populate_function_pass_manager_specific(lbModule *m, LLVMPassManagerRef 
 	LLVMAddMemCpyOptPass(fpm);
 	LLVMAddPromoteMemoryToRegisterPass(fpm);
 	LLVMAddMergedLoadStoreMotionPass(fpm);
-	LLVMAddConstantPropagationPass(fpm);
+	LLVMAddCorrelatedValuePropagationPass(fpm);
 	LLVMAddEarlyCSEPass(fpm);
 
-	LLVMAddConstantPropagationPass(fpm);
+	LLVMAddCorrelatedValuePropagationPass(fpm);
 	LLVMAddMergedLoadStoreMotionPass(fpm);
 	LLVMAddPromoteMemoryToRegisterPass(fpm);
 	LLVMAddCFGSimplificationPass(fpm);

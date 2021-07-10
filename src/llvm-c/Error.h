@@ -14,7 +14,7 @@
 #ifndef LLVM_C_ERROR_H
 #define LLVM_C_ERROR_H
 
-#include "ExternC.h"
+#include "llvm-c/ExternC.h"
 
 LLVM_C_EXTERN_C_BEGIN
 
@@ -61,6 +61,11 @@ void LLVMDisposeErrorMessage(char *ErrMsg);
  * Returns the type id for llvm StringError.
  */
 LLVMErrorTypeId LLVMGetStringErrorTypeId(void);
+
+/**
+ * Create a StringError.
+ */
+LLVMErrorRef LLVMCreateStringError(const char *ErrMsg);
 
 LLVM_C_EXTERN_C_END
 

@@ -19,9 +19,9 @@
 #ifndef LLVM_C_TARGETMACHINE_H
 #define LLVM_C_TARGETMACHINE_H
 
-#include "ExternC.h"
-#include "Target.h"
-#include "Types.h"
+#include "llvm-c/ExternC.h"
+#include "llvm-c/Target.h"
+#include "llvm-c/Types.h"
 
 LLVM_C_EXTERN_C_BEGIN
 

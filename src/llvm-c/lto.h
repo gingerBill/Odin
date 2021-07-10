@@ -16,7 +16,7 @@
 #ifndef LLVM_C_LTO_H
 #define LLVM_C_LTO_H
 
-#include "ExternC.h"
+#include "llvm-c/ExternC.h"
 
 #ifdef __cplusplus
 #include <cstddef>

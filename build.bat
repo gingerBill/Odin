@@ -51,7 +51,8 @@ set compiler_warnings= ^
 	-wd4456 -wd4457 -wd4480 ^
 	-wd4512
 
-set compiler_includes=
+set compiler_includes= ^
+	/Isrc\
 set libs= ^
 	kernel32.lib ^
 	bin\llvm\windows\LLVM-C.lib

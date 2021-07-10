@@ -16,8 +16,8 @@
 #ifndef LLVM_C_DEBUGINFO_H
 #define LLVM_C_DEBUGINFO_H
 
-#include "Core.h"
-#include "ExternC.h"
+#include "llvm-c/Core.h"
+#include "llvm-c/ExternC.h"
 
 LLVM_C_EXTERN_C_BEGIN
 
@@ -159,7 +159,9 @@ enum {
   LLVMDIImportedEntityMetadataKind,
   LLVMDIMacroMetadataKind,
   LLVMDIMacroFileMetadataKind,
-  LLVMDICommonBlockMetadataKind
+  LLVMDICommonBlockMetadataKind,
+  LLVMDIStringTypeMetadataKind,
+  LLVMDIGenericSubrangeMetadataKind
 };
 typedef unsigned LLVMMetadataKind;
 

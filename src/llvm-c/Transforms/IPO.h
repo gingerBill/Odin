@@ -15,8 +15,8 @@
 #ifndef LLVM_C_TRANSFORMS_IPO_H
 #define LLVM_C_TRANSFORMS_IPO_H
 
-#include "../ExternC.h"
-#include "../Types.h"
+#include "llvm-c/ExternC.h"
+#include "llvm-c/Types.h"
 
 LLVM_C_EXTERN_C_BEGIN
 
@@ -56,9 +56,6 @@ void LLVMAddGlobalDCEPass(LLVMPassManagerRef PM);
 
 /** See llvm::createGlobalOptimizerPass function. */
 void LLVMAddGlobalOptimizerPass(LLVMPassManagerRef PM);
-
-/** See llvm::createIPConstantPropagationPass function. */
-void LLVMAddIPConstantPropagationPass(LLVMPassManagerRef PM);
 
 /** See llvm::createPruneEHPass function. */
 void LLVMAddPruneEHPass(LLVMPassManagerRef PM);

@@ -9,10 +9,10 @@ OS=$(shell uname)
 
 ifeq ($(OS), Darwin)
     LLVM_CONFIG=llvm-config
-    ifneq ($(shell llvm-config --version | grep '^11\.'),)
+    ifneq ($(shell llvm-config --version | grep '^12\.'),)
         LLVM_CONFIG=llvm-config
     else
-        $(error "Requirement: llvm-config must be version 11")
+        $(error "Requirement: llvm-config must be version 12.0.1")
     endif
 
     LDFLAGS:=$(LDFLAGS) -liconv
@@ -20,14 +20,14 @@ ifeq ($(OS), Darwin)
     LDFLAGS:=$(LDFLAGS) -lLLVM-C
 endif
 ifeq ($(OS), Linux)
-    LLVM_CONFIG=llvm-config-11
-    ifneq ($(shell which llvm-config-11 2>/dev/null),)
-        LLVM_CONFIG=llvm-config-11
+    LLVM_CONFIG=llvm-config-12
+    ifneq ($(shell which llvm-config-12 2>/dev/null),)
+        LLVM_CONFIG=llvm-config-12
     else
-        ifneq ($(shell llvm-config --version | grep '^11\.'),)
+        ifneq ($(shell llvm-config --version | grep '^12\.'),)
             LLVM_CONFIG=llvm-config
         else
-            $(error "Requirement: llvm-config must be version 11")
+            $(error "Requirement: llvm-config must be version 12.0.1")
         endif
     endif
 

@@ -2675,16 +2675,16 @@ LLVMAttributeRef lb_create_enum_attribute_with_type(LLVMContextRef ctx, char con
 	if (s == "byval") {
 		// return nullptr;
 	} else if (s == "byref") {
-		return nullptr;
+		// return nullptr;
 	} else if (s == "preallocated") {
-		return nullptr;
+		// return nullptr;
 	} else if (s == "sret") {
 		// return nullptr;
 	}
 
 	unsigned kind = LLVMGetEnumAttributeKindForName(name, s.len);
 	GB_ASSERT_MSG(kind != 0, "unknown attribute: %s", name);
-	return LLVMCreateEnumAttribute(ctx, kind, 0);
+	return LLVMCreateTypeAttribute(ctx, kind, type);
 }
 
 LLVMAttributeRef lb_create_enum_attribute(LLVMContextRef ctx, char const *name, u64 value) {

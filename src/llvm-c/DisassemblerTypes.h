@@ -10,7 +10,7 @@
 #ifndef LLVM_DISASSEMBLER_TYPES_H
 #define LLVM_DISASSEMBLER_TYPES_H
 
-#include "DataTypes.h"
+#include "llvm-c/DataTypes.h"
 #ifdef __cplusplus
 #include <cstddef>
 #else
